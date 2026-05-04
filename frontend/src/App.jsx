@@ -24,6 +24,19 @@ const App = () => {
     checkAuth();
   }, [checkAuth]);
 
+  useEffect(() => {
+    if (typeof document !== "undefined") {
+      document.documentElement.dataset.theme = theme;
+      if (document.body) {
+        document.body.dataset.theme = theme;
+      }
+      const root = document.querySelector("#root");
+      if (root) {
+        root.dataset.theme = theme;
+      }
+    }
+  }, [theme]);
+
   console.log({ authUser });
 
   if (isCheckingAuth && !authUser)
@@ -34,7 +47,7 @@ const App = () => {
     );
 
   return (
-    <div data-theme={theme}>
+    <div data-theme={theme} className="min-h-screen">
       <Navbar />
 
       <Routes>

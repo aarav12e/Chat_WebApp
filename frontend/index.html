@@ -4,7 +4,26 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>frontend</title>
+    <script>
+      try {
+        const savedTheme = localStorage.getItem('chat-theme') || 'dark';
+        document.documentElement.dataset.theme = savedTheme;
+        if (document.body) {
+          document.body.dataset.theme = savedTheme;
+        } else {
+          window.addEventListener('DOMContentLoaded', () => {
+            document.body.dataset.theme = savedTheme;
+          });
+        }
+        const root = document.getElementById('root');
+        if (root) {
+          root.dataset.theme = savedTheme;
+        }
+      } catch (error) {
+        // ignore if localStorage is unavailable
+      }
+    </script>
+    <title>Doodo Chart</title>
   </head>
   <body>
     <div id="root"></div>

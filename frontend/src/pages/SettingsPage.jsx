@@ -24,7 +24,7 @@ const SettingsPage = () => {
               key={t}
               className={`
                 group flex flex-col items-center gap-1.5 p-2 rounded-lg transition-colors
-                ${theme === t ? "bg-base-200" : "hover:bg-base-200/50"}
+                ${theme === t ? "bg-base-200 ring-2 ring-primary" : "hover:bg-base-200/50"}
               `}
               onClick={() => setTheme(t)}
             >
