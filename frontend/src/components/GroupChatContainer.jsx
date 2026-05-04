@@ -1,20 +1,23 @@
-import { useChatStore } from "../store/useChatStore";
 import { useEffect, useRef, useState, useCallback } from "react";
-
-import ChatHeader from "./ChatHeader";
+import { useGroupStore } from "../store/useGroupStore";
+import { useAuthStore } from "../store/useAuthStore";
+import { formatMessageTime } from "../lib/utils";
+import GroupHeader from "./GroupHeader";
 import MessageInput from "./MessageInput";
 import MessageSkeleton from "./skeletons/MessageSkeleton";
 import MessageContextMenu from "./MessageContextMenu";
-import { useAuthStore } from "../store/useAuthStore";
-import { formatMessageTime } from "../lib/utils";
 import { Trash2 } from "lucide-react";
 import useLongPress from "../hooks/useLongPress";
 
 const TWO_HOURS = 2 * 60 * 60 * 1000;
 
-// Inner component per message so each can have its own useLongPress hook
-const MessageBubble = ({ message, authUser, selectedUser, onDelete, onContextMenu }) => {
-  const isMine = message.senderId === authUser._id;
+// Per-message bubble with long-press support
+const GroupMessageBubble = ({ message, authUser, onDelete, onContextMenu }) => {
+  const isMine = message.senderId?._id === authUser._id || message.senderId === authUser._id;
+  const sender = message.senderId;
+  const senderName = typeof sender === "object" ? sender?.fullName : "Unknown";
+  const senderPic = typeof sender === "object" ? sender?.profilePic : null;
+
   const isWithin2Hours = Date.now() - new Date(message.createdAt).getTime() < TWO_HOURS;
   const canDelete = isMine && isWithin2Hours;
 
@@ -42,17 +45,22 @@ const MessageBubble = ({ message, authUser, selectedUser, onDelete, onContextMen
       <div className="chat-image avatar">
         <div className="size-10 rounded-full border">
           <img
-            src={isMine ? authUser.profilePic || "/avatar.png" : selectedUser.profilePic || "/avatar.png"}
-            alt="profile pic"
+            src={isMine ? authUser.profilePic || "/avatar.png" : senderPic || "/avatar.png"}
+            alt="profile"
           />
         </div>
       </div>
-      <div className="chat-header mb-1">
-        <time className="text-xs opacity-50 ml-1">
+
+      <div className="chat-header mb-1 flex items-center gap-2">
+        {!isMine && (
+          <span className="text-xs font-semibold text-base-content/70">{senderName}</span>
+        )}
+        <time className="text-xs opacity-50">
           {formatMessageTime(message.createdAt)}
         </time>
       </div>
-      <div className="chat-bubble flex flex-col relative">
+
+      <div className="chat-bubble flex flex-col relative group">
         {message.image && (
           <img
             src={message.image}
@@ -62,12 +70,12 @@ const MessageBubble = ({ message, authUser, selectedUser, onDelete, onContextMen
         )}
         {message.text && <p>{message.text}</p>}
 
-        {/* Desktop hover delete — hidden on touch devices via sm: check */}
+        {/* Desktop hover delete */}
         {canDelete && hovered && (
           <button
             onClick={() => onDelete(message._id)}
             className="absolute -top-7 right-0 btn btn-xs btn-error btn-ghost gap-1 opacity-90 hover:opacity-100 shadow-sm hidden sm:flex"
-            title="Delete message (available within 2 hours)"
+            title="Delete message"
           >
             <Trash2 className="size-3" />
           </button>
@@ -77,53 +85,55 @@ const MessageBubble = ({ message, authUser, selectedUser, onDelete, onContextMen
   );
 };
 
-const ChatContainer = () => {
+const GroupChatContainer = () => {
   const {
-    messages,
-    getMessages,
-    isMessagesLoading,
-    selectedUser,
-    subscribeToMessages,
-    unsubscribeFromMessages,
-    sendMessage,
-    deleteMessage,
-  } = useChatStore();
+    groupMessages,
+    getGroupMessages,
+    sendGroupMessage,
+    deleteGroupMessage,
+    selectedGroup,
+    isGroupMessagesLoading,
+    subscribeToGroupMessages,
+    unsubscribeFromGroupMessages,
+  } = useGroupStore();
+
   const { authUser } = useAuthStore();
   const messageEndRef = useRef(null);
-  const [contextMenu, setContextMenu] = useState(null); // { msgId, x, y, canDelete }
+  const [contextMenu, setContextMenu] = useState(null);
 
   useEffect(() => {
-    getMessages(selectedUser._id);
-    subscribeToMessages();
-    return () => unsubscribeFromMessages();
-  }, [selectedUser._id, getMessages, subscribeToMessages, unsubscribeFromMessages]);
+    if (!selectedGroup?._id) return;
+    getGroupMessages(selectedGroup._id);
+    subscribeToGroupMessages();
+    return () => unsubscribeFromGroupMessages();
+  }, [selectedGroup?._id, getGroupMessages, subscribeToGroupMessages, unsubscribeFromGroupMessages]);
 
   useEffect(() => {
-    if (messageEndRef.current && messages) {
+    if (messageEndRef.current && groupMessages) {
       messageEndRef.current.scrollIntoView({ behavior: "smooth" });
     }
-  }, [messages]);
+  }, [groupMessages]);
 
   const handleSendMessage = async (messageData) => {
-    await sendMessage(messageData);
+    await sendGroupMessage(messageData);
   };
 
   const handleDeleteMessage = async (messageId) => {
     if (window.confirm("Delete this message?")) {
-      await deleteMessage(messageId);
+      await deleteGroupMessage(messageId);
     }
   };
 
   const handleContextMenuDelete = async () => {
     if (contextMenu?.msgId) {
-      await deleteMessage(contextMenu.msgId);
+      await deleteGroupMessage(contextMenu.msgId);
     }
   };
 
-  if (isMessagesLoading) {
+  if (isGroupMessagesLoading) {
     return (
       <div className="flex-1 flex flex-col overflow-auto">
-        <ChatHeader />
+        <GroupHeader />
         <MessageSkeleton />
         <MessageInput onSend={handleSendMessage} />
       </div>
@@ -132,15 +142,20 @@ const ChatContainer = () => {
 
   return (
     <div className="flex-1 flex flex-col overflow-auto">
-      <ChatHeader />
+      <GroupHeader />
 
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {messages.map((message, idx) => (
-          <div key={message._id} ref={idx === messages.length - 1 ? messageEndRef : null}>
-            <MessageBubble
+        {groupMessages.length === 0 && (
+          <div className="flex flex-col items-center justify-center h-full gap-3 text-base-content/40">
+            <p className="text-sm">No messages yet. Say hello! 👋</p>
+          </div>
+        )}
+
+        {groupMessages.map((message, idx) => (
+          <div key={message._id} ref={idx === groupMessages.length - 1 ? messageEndRef : null}>
+            <GroupMessageBubble
               message={message}
               authUser={authUser}
-              selectedUser={selectedUser}
               onDelete={handleDeleteMessage}
               onContextMenu={setContextMenu}
             />
@@ -163,4 +178,6 @@ const ChatContainer = () => {
     </div>
   );
 };
-export default ChatContainer;
+
+export default GroupChatContainer;
+

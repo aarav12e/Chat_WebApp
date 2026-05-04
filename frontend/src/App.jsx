@@ -1,4 +1,6 @@
 import Navbar from "./components/Navbar";
+import BottomNav from "./components/BottomNav";
+import OfflineBanner from "./components/OfflineBanner";
 
 import HomePage from "./pages/HomePage";
 import SignUpPage from "./pages/SignUpPage";
@@ -24,7 +26,17 @@ const App = () => {
     checkAuth();
   }, [checkAuth]);
 
-  // Theme is applied to <html> directly by useThemeStore
+  // Register PWA Service Worker
+  useEffect(() => {
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker
+          .register("/sw.js")
+          .then((reg) => console.log("SW registered:", reg.scope))
+          .catch((err) => console.warn("SW registration failed:", err));
+      });
+    }
+  }, []);
 
   console.log({ authUser });
 
@@ -38,6 +50,7 @@ const App = () => {
   return (
     <div data-theme={theme} className="min-h-screen">
       <Navbar />
+      <OfflineBanner />
 
       <Routes>
         <Route path="/" element={authUser ? <HomePage /> : <Navigate to="/login" />} />
@@ -47,6 +60,7 @@ const App = () => {
         <Route path="/profile" element={authUser ? <ProfilePage /> : <Navigate to="/login" />} />
       </Routes>
 
+      <BottomNav />
       <Toaster />
     </div>
   );

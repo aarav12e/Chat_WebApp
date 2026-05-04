@@ -1,13 +1,13 @@
 import { useRef, useState } from "react";
-import { useChatStore } from "../store/useChatStore";
 import { Image, Send, X } from "lucide-react";
 import toast from "react-hot-toast";
 
-const MessageInput = () => {
+// MessageInput is now generic: accepts an optional `onSend` prop.
+// If onSend is not provided, it falls back to the chat store's sendMessage.
+const MessageInput = ({ onSend }) => {
   const [text, setText] = useState("");
   const [imagePreview, setImagePreview] = useState(null);
   const fileInputRef = useRef(null);
-  const { sendMessage } = useChatStore();
 
   const handleImageChange = (e) => {
     const file = e.target.files[0];
@@ -33,12 +33,9 @@ const MessageInput = () => {
     if (!text.trim() && !imagePreview) return;
 
     try {
-      await sendMessage({
-        text: text.trim(),
-        image: imagePreview,
-      });
-
-      // Clear form
+      if (onSend) {
+        await onSend({ text: text.trim(), image: imagePreview });
+      }
       setText("");
       setImagePreview(null);
       if (fileInputRef.current) fileInputRef.current.value = "";
@@ -106,4 +103,5 @@ const MessageInput = () => {
     </div>
   );
 };
+
 export default MessageInput;

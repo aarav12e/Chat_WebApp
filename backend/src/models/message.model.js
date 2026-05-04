@@ -7,10 +7,15 @@ const messageSchema = new mongoose.Schema(
       ref: "User",
       required: true,
     },
+    // For DMs
     receiverId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
-      required: true,
+    },
+    // For group messages
+    groupId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Group",
     },
     text: {
       type: String,
