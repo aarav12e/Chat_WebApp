@@ -24,18 +24,7 @@ const App = () => {
     checkAuth();
   }, [checkAuth]);
 
-  useEffect(() => {
-    if (typeof document !== "undefined") {
-      document.documentElement.dataset.theme = theme;
-      if (document.body) {
-        document.body.dataset.theme = theme;
-      }
-      const root = document.querySelector("#root");
-      if (root) {
-        root.dataset.theme = theme;
-      }
-    }
-  }, [theme]);
+  // Theme is applied to <html> directly by useThemeStore
 
   console.log({ authUser });
 
