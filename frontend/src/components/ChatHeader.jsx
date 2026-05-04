@@ -1,4 +1,4 @@
-import { X } from "lucide-react";
+import { ArrowLeft, X } from "lucide-react";
 import { useAuthStore } from "../store/useAuthStore";
 import { useChatStore } from "../store/useChatStore";
 
@@ -10,6 +10,15 @@ const ChatHeader = () => {
     <div className="p-2.5 border-b border-base-300">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
+          {/* Back button — mobile only */}
+          <button
+            className="sm:hidden btn btn-ghost btn-sm btn-circle"
+            onClick={() => setSelectedUser(null)}
+            aria-label="Back to contacts"
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </button>
+
           {/* Avatar */}
           <div className="avatar">
             <div className="size-10 rounded-full relative">
@@ -26,8 +35,12 @@ const ChatHeader = () => {
           </div>
         </div>
 
-        {/* Close button */}
-        <button onClick={() => setSelectedUser(null)}>
+        {/* Close button — desktop only */}
+        <button
+          className="hidden sm:block"
+          onClick={() => setSelectedUser(null)}
+          aria-label="Close chat"
+        >
           <X />
         </button>
       </div>
